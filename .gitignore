@@ -32,7 +32,7 @@ ENV/
 *.swo
 
 # Project specific
-automatask_config.json
+configs/
 *.log
 chromedriver.exe
 geckodriver.exe

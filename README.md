@@ -1,10 +1,10 @@
-# Automatask - Web Data Entry Automation Tool
+# LazyWorker - Web Data Entry Automation Tool
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-A powerful and user-friendly GUI application for automating web-based data entry tasks. Built with Python, Selenium, and Tkinter.
+A powerful and user-friendly GUI application for automating repetitive data entry tasks. Built with Python, Selenium, and Tkinter.
 
 ## 🌟 Features
 
@@ -27,8 +27,8 @@ A powerful and user-friendly GUI application for automating web-based data entry
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/Automatask.git
-cd Automatask
+git clone https://github.com/arjunapanji21/LazyWorker.git
+cd LazyWorker
 ```
 
 2. Install required packages:

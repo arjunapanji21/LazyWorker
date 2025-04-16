@@ -1,18 +1,21 @@
 import tkinter as tk
-from tkinter import ttk, filedialog, scrolledtext
+from tkinter import ttk, filedialog, scrolledtext, simpledialog
 import json
 from web_automation import WebAutomator
 from excel_handler import ExcelHandler
 from config_manager import ConfigManager
+from splash_screen import SplashScreen
+from welcome_screen import WelcomeScreen
 
-class AutomataskGUI:
+class LazyWorkerGUI:
     VERSION = "1.0.0"
     AUTHOR = "Arjuna Panji Prakarsa"
     WEBSITE = "https://arjunaprakarsa.com"
 
-    def __init__(self):
+    def __init__(self, welcome_screen=None):
+        self.welcome_screen = welcome_screen
         self.root = tk.Tk()
-        self.root.title(f"Automatask v{self.VERSION}")
+        self.root.title(f"LazyWorker v{self.VERSION}")
         self.root.geometry("1024x800")  # Wider window
         self.root.resizable(True, True)
         
@@ -37,7 +40,7 @@ class AutomataskGUI:
         
         version_label = ttk.Label(
             info_frame, 
-            text=f"Automatask v{self.VERSION} | By {self.AUTHOR}", 
+            text=f"LazyWorker v{self.VERSION} | By {self.AUTHOR}", 
             font=("Segoe UI", 9, "bold")
         )
         version_label.pack(side="left")
@@ -346,45 +349,121 @@ class AutomataskGUI:
             self.file_path.set(filename)
     
     def save_config(self):
-        # Get mapping values directly from the Treeview items
-        mappings = []
-        for item_id in self.mapping_tree.get_children():
-            values = self.mapping_tree.item(item_id)['values']
-            mappings.append({
-                "excel_column": values[0],
-                "selector_type": values[1],
-                "web_selector": values[2]
-            })
-            
-        # Get post-submit actions
-        actions = []
-        for item_id in self.actions_tree.get_children():
-            values = self.actions_tree.item(item_id)['values']
-            actions.append({
-                "order": values[0],
-                "action": values[1],
-                "selector_type": values[2],
-                "selector": values[3],
-                "delay": float(values[4])
-            })
+        # Ask for configuration name
+        name = simpledialog.askstring(
+            "Save Configuration",
+            "Enter a name for this configuration:",
+            parent=self.root
+        )
         
-        config = {
-            "url": self.url_entry.get(),
-            "form_url": self.form_url_entry.get(),
-            "username": self.username_entry.get(),
-            "password": self.password_entry.get(),
-            "field_mappings": mappings,
-            "excel_file": self.file_path.get(),
-            "post_submit_actions": actions
-        }
-        self.config_manager.save_config(config)
-        self.update_status("Configuration saved successfully.")
+        if name:
+            # Get mapping values directly from the Treeview items
+            mappings = []
+            for item_id in self.mapping_tree.get_children():
+                values = self.mapping_tree.item(item_id)['values']
+                mappings.append({
+                    "excel_column": values[0],
+                    "selector_type": values[1],
+                    "web_selector": values[2]
+                })
+                
+            # Get post-submit actions
+            actions = []
+            for item_id in self.actions_tree.get_children():
+                values = self.actions_tree.item(item_id)['values']
+                actions.append({
+                    "order": values[0],
+                    "action": values[1],
+                    "selector_type": values[2],
+                    "selector": values[3],
+                    "delay": float(values[4])
+                })
+            
+            config = {
+                "name": name,
+                "url": self.url_entry.get(),
+                "form_url": self.form_url_entry.get(),
+                "username": self.username_entry.get(),
+                "password": self.password_entry.get(),
+                "field_mappings": mappings,
+                "excel_file": self.file_path.get(),
+                "post_submit_actions": actions
+            }
+            
+            saved_name = self.config_manager.save_config(config, name)
+            self.update_status(f"Configuration saved as: {saved_name}")
     
     def load_config(self):
-        config = self.config_manager.load_config()
-        if config:
-            self.config_manager.apply_config(self, config)
-            self.update_status("Configuration loaded successfully.")
+        configs = self.config_manager.get_config_list()
+        if not configs:
+            self.update_status("No saved configurations found.")
+            return
+        
+        # Create config selection dialog
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Load Configuration")
+        dialog.geometry("400x300")
+        
+        # Center the dialog
+        dialog.geometry(f"+{self.root.winfo_x() + 200}+{self.root.winfo_y() + 200}")
+        
+        # Add listbox with scrollbar
+        frame = ttk.Frame(dialog, padding="10")
+        frame.pack(fill="both", expand=True)
+        
+        ttk.Label(frame, text="Select a configuration to load:").pack(fill="x")
+        
+        # Create listbox with scrollbar
+        listbox_frame = ttk.Frame(frame)
+        listbox_frame.pack(fill="both", expand=True, pady=5)
+        
+        scrollbar = ttk.Scrollbar(listbox_frame)
+        scrollbar.pack(side="right", fill="y")
+        
+        listbox = tk.Listbox(
+            listbox_frame,
+            yscrollcommand=scrollbar.set,
+            selectmode="single"
+        )
+        listbox.pack(side="left", fill="both", expand=True)
+        
+        scrollbar.config(command=listbox.yview)
+        
+        # Populate listbox
+        for config in configs:
+            listbox.insert("end", config)
+        
+        def load_selected():
+            selection = listbox.curselection()
+            if selection:
+                config_name = listbox.get(selection[0])
+                config = self.config_manager.load_config(config_name)
+                if config:
+                    self.config_manager.apply_config(self, config)
+                    self.update_status(f"Loaded configuration: {config_name}")
+                dialog.destroy()
+            else:
+                self.update_status("No configuration selected")
+        
+        # Add buttons
+        btn_frame = ttk.Frame(frame)
+        btn_frame.pack(fill="x", pady=(10, 0))
+        
+        ttk.Button(
+            btn_frame,
+            text="Load",
+            command=load_selected
+        ).pack(side="right", padx=5)
+        
+        ttk.Button(
+            btn_frame,
+            text="Cancel",
+            command=dialog.destroy
+        ).pack(side="right")
+        
+        # Make dialog modal
+        dialog.transient(self.root)
+        dialog.grab_set()
     
     def start_automation(self):
         self.stop_flag = False
@@ -459,8 +538,31 @@ class AutomataskGUI:
         webbrowser.open(self.WEBSITE)
 
     def run(self):
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.root.mainloop()
 
+    def on_closing(self):
+        if self.automation_running:
+            if tk.messagebox.askokcancel("Quit", "Automation is running. Do you want to stop and exit?"):
+                self.stop_automation()
+            else:
+                return
+        self.root.destroy()
+        if self.welcome_screen:
+            self.welcome_screen.show()
+
+    def __del__(self):
+        if self.welcome_screen:
+            self.welcome_screen.show()
+
 if __name__ == "__main__":
-    app = AutomataskGUI()
+    # Show splash screen
+    splash = SplashScreen(duration=2)
+    splash.show()
+    
+    # Show welcome screen
+    welcome = WelcomeScreen()
+    welcome.run()
+    
+    app = LazyWorkerGUI(welcome_screen=welcome)
     app.run()

@@ -1,20 +1,46 @@
 import json
 import os
+from datetime import datetime
 
 class ConfigManager:
     def __init__(self):
-        self.config_file = "automatask_config.json"
+        self.config_dir = "configs"
+        if not os.path.exists(self.config_dir):
+            os.makedirs(self.config_dir)
     
-    def save_config(self, config):
-        with open(self.config_file, 'w') as f:
+    def save_config(self, config, name=None):
+        if name is None:
+            # Generate default name using timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            name = f"config_{timestamp}"
+        
+        # Ensure .json extension
+        if not name.endswith('.json'):
+            name += '.json'
+        
+        filepath = os.path.join(self.config_dir, name)
+        with open(filepath, 'w') as f:
             json.dump(config, f, indent=4)
+        return name
     
-    def load_config(self):
-        if not os.path.exists(self.config_file):
+    def load_config(self, filename=None):
+        if filename is None:
             return None
         
-        with open(self.config_file, 'r') as f:
+        filepath = os.path.join(self.config_dir, filename)
+        if not os.path.exists(filepath):
+            return None
+        
+        with open(filepath, 'r') as f:
             return json.load(f)
+    
+    def get_config_list(self):
+        """Get list of available configurations"""
+        configs = []
+        for file in os.listdir(self.config_dir):
+            if file.endswith('.json'):
+                configs.append(file)
+        return sorted(configs)
     
     def apply_config(self, gui, config):
         gui.url_entry.delete(0, 'end')
