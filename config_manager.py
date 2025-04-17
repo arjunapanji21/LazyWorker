@@ -55,7 +55,16 @@ class ConfigManager:
         gui.password_entry.delete(0, 'end')
         gui.password_entry.insert(0, config['password'])
         
-        gui.file_path.set(config['excel_file'])
+        # Handle Excel file path
+        excel_path = config.get('excel_file', '')
+        if excel_path:
+            # Update display path
+            display_path = excel_path
+            if len(display_path) > 40:
+                display_path = "..." + display_path[-37:]
+            gui.file_path.set(display_path)
+            # Store full path
+            gui.file_path_label.full_path = excel_path
         
         # Clear existing mappings in tree
         for item in gui.mapping_tree.get_children():
@@ -74,12 +83,16 @@ class ConfigManager:
             gui.actions_tree.delete(item)
             
         # Add loaded actions
-        if 'post_submit_actions' in config:
-            for action in sorted(config['post_submit_actions'], key=lambda x: x['order']):
-                gui.actions_tree.insert("", "end", values=(
-                    action['order'],
-                    action['action'],
-                    action['selector_type'],
-                    action['selector'],
-                    action['delay']
-                ))
+        for action in config.get('post_submit_actions', []):
+            gui.actions_tree.insert("", "end", values=(
+                action.get('order', ''),
+                action.get('action', ''),
+                action.get('selector_type', ''),
+                action.get('selector', ''),
+                action.get('condition', ''), # Add condition field
+                action.get('delay', '')
+            ))
+        
+        # Update auto confirm setting if present
+        if 'auto_confirm' in config:
+            gui.auto_confirm.set(config['auto_confirm'])
